@@ -1,8 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace YourNamespace
+﻿namespace YourNamespace
 {
+    public interface ISubscriber
+    {
+        public void HandleMessage(object? sender, EventDataEventArgs e);
+    }
     // Event arguments for the event published by the broker
     public class EventDataEventArgs : EventArgs
     {
@@ -19,21 +20,16 @@ namespace YourNamespace
     {
         private readonly Dictionary<string, EventHandler<EventDataEventArgs>?> _subscribers = new Dictionary<string, EventHandler<EventDataEventArgs>?>();
 
-        public void Subscribe(string eventType, EventHandler<EventDataEventArgs> handler)
+        public void Subscribe(string eventType, ISubscriber handler)
         {
-            if (!_subscribers.ContainsKey(eventType))
-            {
-                _subscribers[eventType] = null;
-            }
-
-            _subscribers[eventType] += handler;
+            _subscribers[eventType] = handler.HandleMessage;
         }
 
-        public void Unsubscribe(string eventType, EventHandler<EventDataEventArgs> handler)
+        public void Unsubscribe(string eventType)
         {
             if (_subscribers.ContainsKey(eventType))
             {
-                _subscribers[eventType] -= handler;
+                _subscribers[eventType] = null;
             }
         }
 
@@ -58,14 +54,14 @@ namespace YourNamespace
             _broker = broker;
         }
 
-        public void PublishMessage(string message)
+        public void PublishMessage(string eventName, string message)
         {
-            _broker.Publish("messageEvent", message);
+            _broker.Publish(eventName, message);
         }
     }
 
     // Subscriber class
-    public class Subscriber
+    public class Subscriber : ISubscriber
     {
         public void HandleMessage(object? sender, EventDataEventArgs e)
         {
@@ -85,16 +81,16 @@ namespace YourNamespace
             var subscriber = new Subscriber();
 
             // Subscribe the subscriber to the "messageEvent"
-            broker.Subscribe("messageEvent", subscriber.HandleMessage);
+            broker.Subscribe("messageEvent", subscriber);
 
             // Publish a message
-            publisher.PublishMessage("Hello, world!");
+            publisher.PublishMessage("messageEvent", "Hello, world!");
 
             // Unsubscribe the subscriber from the "messageEvent"
-            broker.Unsubscribe("messageEvent", subscriber.HandleMessage);
+            broker.Unsubscribe("messageEvent");
 
             // Publish another message
-            publisher.PublishMessage("Goodbye!");
+            publisher.PublishMessage("messageEvent", "Goodbye!");
 
             Console.ReadLine();
         }
