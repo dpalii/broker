@@ -35,6 +35,10 @@
 
         public void Publish(string eventType, string message)
         {
+            if (!_subscribers.ContainsKey(eventType))
+            {
+                return;
+            }
             EventHandler<EventDataEventArgs>? handler = _subscribers[eventType];
             if (handler != null)
             {
